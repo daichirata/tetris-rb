@@ -4,7 +4,7 @@ include StarRuby
 class Texture
   def draw_block(x, y, w, h)
     x, y = x * w, y * h
-    fill_rect(x, y, w, h, Color.new(255,255,0,255))
+    fill_rect(x, y, w, h, Color.new(255,0,0,255))
     draw_boder(x, y, w, h)
   end
 
@@ -16,3 +16,15 @@ class Texture
   end
 end
 
+class Color
+  def self.get num
+    case num
+    when 1
+      return Color.new(255,0,0,255)
+    when 2
+      return Color.new(0,255,0,255)
+    when 3
+      return Color.new(0,0,255,255)
+    end
+  end
+end

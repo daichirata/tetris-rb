@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 require "./starruby_ext"
 
 module Tetris
@@ -63,6 +62,16 @@ module Tetris
       new_shape
     end
 
+    def tick
+      if valid
+        @currentY += 1
+      else
+        freez
+        clear_lines
+        new_shape
+      end
+    end
+
     def current_enum(&block)
       (0..3).each{|y| (0..3).each{|x| block.call(y, x)}}
     end
@@ -80,9 +89,24 @@ module Tetris
       current_enum do |y, x|
         @current[y][x] = shape[y] ? shape[y][x] || 0 : 0
       end
+      @currentX, @currentY = 5, 0
+    end
 
-      @currentX = COLS / 2
-      @currentY = 0
+    def move_right
+      @currentX += 1 if valid_move(1)
+    end
+
+    def move_left
+      @currentX -= 1 if valid_move(-1)
+    end
+
+    def move_rotate
+      @_current = Hash.new {|k,v| k[v] = {}}
+      current_enum do |y, x|
+        @_current[y][x] = @current[3 - x][y]
+      end
+
+      @current = @_current if valid(@_current)
     end
 
     def freez
@@ -91,18 +115,25 @@ module Tetris
           @bord[y + @currentY][x + @currentX] = @current[y][x]
         end
       end
+      @bord.delete(20)
     end
 
-    require 'pp'
-
-    def valid
-      if  @bord[@currentY + 2] == {} || @currentY == 19
-        return false
+    def clear_lines
+      @bord.each do |y, rows|
+        unless rows.values.include?(0)
+          rows.each {|x, val| @bord[y][x] = 0}
+          y.downto(1).each do |i|
+            @bord[i] = @bord[i - 1]
+          end
+        end
       end
+    end
 
-      @current.each do |y, rows|
+    def valid(current = nil)
+      current ||= @current
+      current.each do |y, rows|
         rows.each do |x, val|
-          if val == 1 && @bord[(y + @currentY) + 1][x + @currentX] == 1
+          if val == 1 && @bord[(y + @currentY) + 1][x + @currentX] != 0
             return false
           end
         end
@@ -110,21 +141,45 @@ module Tetris
       return true
     end
 
-    def tick
-      if valid
-        @currentY += 1
-      else
-        freez
-        new_shape
+    def valid_move(value)
+      @current.each do |y, rows|
+        rows.each do |x, val|
+          if val == 1 && @bord[y + @currentY][x + @currentX + value] != 0
+            return  false
+          end
+        end
+      end
+      return true
+    end
+  end
+
+  class Controller
+    def update(model)
+      if Input.keys(:keyboard).include?(:right)
+        model.move_right
+      end
+
+      if Input.keys(:keyboard).include?(:left)
+        model.move_left
+      end
+
+      if Input.keys(:keyboard).include?(:up)
+        model.move_rotate
+      end
+
+      if Input.keys(:keyboard).include?(:escape)
+        exit 0
       end
     end
   end
 end
 
 model = Tetris::Model.new
-view = Tetris::View.new(model)
+view  = Tetris::View.new(model)
+controller = Tetris::Controller.new
 
-StarRuby::Game.run(*Tetris::View.size, :fps => 5) do |game|
+StarRuby::Game.run(*Tetris::View.size, :fps => 10) do |game|
   view.render(game.screen)
   model.tick
+  controller.update(model)
 end
