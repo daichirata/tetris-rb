@@ -63,6 +63,10 @@ module Tetris
       new_shape
     end
 
+    def current_enum(&block)
+      (0..3).each{|y| (0..3).each{|x| block.call(y, x)}}
+    end
+
     def create_bord
       @bord = Hash.new {|k,v| k[v] = {}}
       (0..(ROWS - 1)).each do |y|
@@ -73,16 +77,36 @@ module Tetris
     def new_shape
       shape = SHAPES.sample
       @current = Hash.new {|k,v| k[v] = {}}
-      (0..3).each do |y|
-        (0..3).each {|x| @current[y][x] = shape[y] ? shape[y][x] || 0 : 0}
+      current_enum do |y, x|
+        @current[y][x] = shape[y] ? shape[y][x] || 0 : 0
       end
 
-      @currentX = 5
+      @currentX = COLS / 2
       @currentY = 0
     end
 
+    def freez
+      current_enum do |y, x|
+        if @current[y][x] == 1
+          @bord[y + @currentY][x + @currentX] = @current[y][x]
+        end
+      end
+    end
+
+    def valid
+      if  @bord[@currentY + 2] == {} || @currentY == 19
+        return false
+      end
+      return true
+    end
+
     def tick
-      @currentY += 1
+      if valid
+        @currentY += 1
+      else
+        freez
+        new_shape
+      end
     end
   end
 end
