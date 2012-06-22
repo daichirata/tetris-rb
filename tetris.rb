@@ -32,7 +32,7 @@ module Tetris
       @model.current.each do |col, rows|
         rows.each do |row, val|
           if @model.current[col][row] == 1
-            screen.draw_block(row, col, BLOCK_W, BLOCK_H)
+            screen.draw_block(row + @model.currentX, col + @model.currentY, BLOCK_W, BLOCK_H)
           end
         end
       end
@@ -40,28 +40,22 @@ module Tetris
   end
 
   class Model
-    attr_reader :bord, :current
+    attr_reader :bord, :current, :currentX, :currentY
 
     SHAPES = [
-      [ 1,1,1,1 ], # ■■■■
-
-      [ 1,1,1,0,   # ■■■
-        1 ],       # ■
-
-      [ 1,1,1,0,   # ■■■
-        0,0,1 ],   #   ■
-
-      [ 1,1,0,0,   # ■■
-        1,1 ],     # ■■
-
-      [ 1,1,0,0,   # ■■
-        0,1,1 ],   #   ■■
-
-      [ 0,1,1,0,   #   ■■
-        1,1 ],     # ■■
-
-      [ 0,1,0,0,   #   ■
-        1,1,1 ]    # ■■■
+      { 0 => { 0 => 1, 1 => 1, 2 => 1, 3 => 1 } },
+      { 0 => { 0 => 1, 1 => 1, 2 => 1, 3 => 0 },
+        1 => { 0 => 1, 1 => 0, 2 => 0, 3 => 0 } },
+      { 0 => { 0 => 1, 1 => 1, 2 => 1, 3 => 0 },
+        1 => { 0 => 0, 1 => 0, 2 => 1, 3 => 0 } },
+      { 0 => { 0 => 1, 1 => 1, 2 => 0, 3 => 0 },
+        1 => { 0 => 1, 1 => 1, 2 => 0, 3 => 0 } },
+      { 0 => { 0 => 1, 1 => 1, 2 => 0, 3 => 0 },
+        1 => { 0 => 0, 1 => 1, 2 => 1, 3 => 0 } },
+      { 0 => { 0 => 0, 1 => 1, 2 => 1, 3 => 0 },
+        1 => { 0 => 1, 1 => 1, 2 => 0, 3 => 0 } },
+      { 0 => { 0 => 0, 1 => 1, 2 => 0, 3 => 0 },
+        1 => { 0 => 1, 1 => 1, 2 => 1, 3 => 0 } },
     ]
 
     def initialize
@@ -80,11 +74,15 @@ module Tetris
       shape = SHAPES.sample
       @current = Hash.new {|k,v| k[v] = {}}
       (0..3).each do |y|
-        (0..3).each do |x|
-          i = 4 * y + x
-          @current[y][x] = shape[i] ? shape[i] : 0
-        end
+        (0..3).each {|x| @current[y][x] = shape[y] ? shape[y][x] || 0 : 0}
       end
+
+      @currentX = 5
+      @currentY = 0
+    end
+
+    def tick
+      @currentY += 1
     end
   end
 end
@@ -94,5 +92,5 @@ view = Tetris::View.new(model)
 
 StarRuby::Game.run(*Tetris::View.size, :fps => 1) do |game|
   view.render(game.screen)
-  model.new_shape
+  model.tick
 end
