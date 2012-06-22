@@ -93,9 +93,19 @@ module Tetris
       end
     end
 
+    require 'pp'
+
     def valid
       if  @bord[@currentY + 2] == {} || @currentY == 19
         return false
+      end
+
+      @current.each do |y, rows|
+        rows.each do |x, val|
+          if val == 1 && @bord[(y + @currentY) + 1][x + @currentX] == 1
+            return false
+          end
+        end
       end
       return true
     end
@@ -114,7 +124,7 @@ end
 model = Tetris::Model.new
 view = Tetris::View.new(model)
 
-StarRuby::Game.run(*Tetris::View.size, :fps => 1) do |game|
+StarRuby::Game.run(*Tetris::View.size, :fps => 5) do |game|
   view.render(game.screen)
   model.tick
 end
