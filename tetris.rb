@@ -5,7 +5,7 @@ module Tetris
   COLS = 10
 
   class View
-    WIDTH = 300
+    WIDTH  = 300
     HEIGHT = 600
     BLOCK_W = WIDTH / COLS
     BLOCK_H = HEIGHT / ROWS
@@ -22,16 +22,16 @@ module Tetris
       screen.clear
       @model.bord.each do |col, rows|
         rows.each do |row, val|
-          if @model.bord[col][row] == 1
-            screen.draw_block(row, col, BLOCK_W, BLOCK_H)
+          if @model.bord[col][row] != 0
+            screen.draw_block(row, col, BLOCK_W, BLOCK_H, val)
           end
         end
       end
 
       @model.current.each do |col, rows|
         rows.each do |row, val|
-          if @model.current[col][row] == 1
-            screen.draw_block(row + @model.currentX, col + @model.currentY, BLOCK_W, BLOCK_H)
+          if @model.current[col][row] != 0
+            screen.draw_block(row + @model.currentX, col + @model.currentY, BLOCK_W, BLOCK_H, val)
           end
         end
       end
@@ -62,16 +62,6 @@ module Tetris
       new_shape
     end
 
-    def tick
-      if valid
-        @currentY += 1
-      else
-        freez
-        clear_lines
-        new_shape
-      end
-    end
-
     def current_enum(&block)
       (0..3).each{|y| (0..3).each{|x| block.call(y, x)}}
     end
@@ -85,33 +75,28 @@ module Tetris
 
     def new_shape
       shape = SHAPES.sample
+      id = (1..SHAPES.size).to_a.sample
+
       @current = Hash.new {|k,v| k[v] = {}}
       current_enum do |y, x|
-        @current[y][x] = shape[y] ? shape[y][x] || 0 : 0
+        @current[y][x] = shape[y] ? shape[y][x] == 1 ? id : 0 : 0
       end
       @currentX, @currentY = 5, 0
     end
 
-    def move_right
-      @currentX += 1 if valid_move(1)
-    end
-
-    def move_left
-      @currentX -= 1 if valid_move(-1)
-    end
-
-    def move_rotate
-      @_current = Hash.new {|k,v| k[v] = {}}
-      current_enum do |y, x|
-        @_current[y][x] = @current[3 - x][y]
+    def tick
+      if valid
+        @currentY += 1
+      else
+        freez
+        clear_lines
+        new_shape
       end
-
-      @current = @_current if valid(@_current)
     end
 
     def freez
       current_enum do |y, x|
-        if @current[y][x] == 1
+        if @current[y][x] != 0
           @bord[y + @currentY][x + @currentX] = @current[y][x]
         end
       end
@@ -133,7 +118,7 @@ module Tetris
       current ||= @current
       current.each do |y, rows|
         rows.each do |x, val|
-          if val == 1 && @bord[(y + @currentY) + 1][x + @currentX] != 0
+          if val != 0 && @bord[(y + @currentY) + 1][x + @currentX] != 0
             return false
           end
         end
@@ -144,12 +129,29 @@ module Tetris
     def valid_move(value)
       @current.each do |y, rows|
         rows.each do |x, val|
-          if val == 1 && @bord[y + @currentY][x + @currentX + value] != 0
+          if val != 0 && @bord[y + @currentY][x + @currentX + value] != 0
             return  false
           end
         end
       end
       return true
+    end
+
+    def move_right
+      @currentX += 1 if valid_move(1)
+    end
+
+    def move_left
+      @currentX -= 1 if valid_move(-1)
+    end
+
+    def rotate
+      @_current = Hash.new {|k,v| k[v] = {}}
+      current_enum do |y, x|
+        @_current[y][x] = @current[3 - x][y]
+      end
+
+      @current = @_current if valid(@_current)
     end
   end
 
@@ -164,7 +166,7 @@ module Tetris
       end
 
       if Input.keys(:keyboard).include?(:up)
-        model.move_rotate
+        model.rotate
       end
 
       if Input.keys(:keyboard).include?(:escape)
@@ -178,8 +180,8 @@ model = Tetris::Model.new
 view  = Tetris::View.new(model)
 controller = Tetris::Controller.new
 
-StarRuby::Game.run(*Tetris::View.size, :fps => 10) do |game|
+StarRuby::Game.run(*Tetris::View.size, :fps => 5) do |game|
   view.render(game.screen)
-  model.tick
   controller.update(model)
+  model.tick
 end
