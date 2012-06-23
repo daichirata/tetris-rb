@@ -96,9 +96,7 @@ module Tetris
 
     def freez
       current_enum do |y, x|
-        if @current[y][x] != 0
-          @bord[y + @currentY][x + @currentX] = @current[y][x]
-        end
+        @bord[y + @currentY][x + @currentX] = @current[y][x] if @current[y][x] != 0
       end
       @bord.delete(20)
     end
@@ -114,35 +112,24 @@ module Tetris
       end
     end
 
-    def valid(current = nil)
-      current ||= @current
-      current.each do |y, rows|
-        rows.each do |x, val|
-          if val != 0 && @bord[(y + @currentY) + 1][x + @currentX] != 0
-            return false
-          end
-        end
+    def valid(current = nil, move_value = nil)
+      line = if move_value
+        ->(x,y) {@bord[y + @currentY][x + @currentX + move_value]}
+      else
+        ->(x,y) {@bord[y + @currentY + 1][x + @currentX]}
       end
-      return true
-    end
 
-    def valid_move(value)
-      @current.each do |y, rows|
-        rows.each do |x, val|
-          if val != 0 && @bord[y + @currentY][x + @currentX + value] != 0
-            return  false
-          end
-        end
+      (current ||= @current).map do |y, rows|
+        rows.each {|x, val| return false if val != 0 && line[x, y] != 0}
       end
-      return true
     end
 
     def move_right
-      @currentX += 1 if valid_move(1)
+      @currentX += 1 if valid(nil, 1)
     end
 
     def move_left
-      @currentX -= 1 if valid_move(-1)
+      @currentX -= 1 if valid(nil, -1)
     end
 
     def rotate
@@ -169,9 +156,7 @@ module Tetris
         model.rotate
       end
 
-      if Input.keys(:keyboard).include?(:escape)
-        exit 0
-      end
+      exit 0 if Input.keys(:keyboard).include?(:escape)
     end
   end
 end
