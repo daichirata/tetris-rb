@@ -153,7 +153,7 @@ module Tetris
     def update(model)
       [:right, :left, :up, :down, :escape].each do |op|
         if Input.keys(:keyboard).include?(op)
-          model.send("key_press", op)
+          model.key_press op
         end
       end
     end
@@ -169,5 +169,5 @@ StarRuby::Game.run(*Tetris::View.size) do |game|
   counter += 1
   view.render(game.screen)
   controller.update(model) if counter % 3 == 0
-  model.tick               if counter % 5 == 0
+  model.tick               if counter % 6 == 0
 end
