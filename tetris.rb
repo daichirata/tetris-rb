@@ -124,14 +124,6 @@ module Tetris
       end
     end
 
-    def move_right
-      @currentX += 1 if valid(nil, 1)
-    end
-
-    def move_left
-      @currentX -= 1 if valid(nil, -1)
-    end
-
     def rotate
       @_current = Hash.new {|k,v| k[v] = {}}
       current_enum do |y, x|
@@ -140,23 +132,30 @@ module Tetris
 
       @current = @_current if valid(@_current)
     end
+
+    def key_press(op)
+      case op
+      when :right
+        @currentX += 1 if valid(nil, 1)
+      when :left
+        @currentX -= 1 if valid(nil, -1)
+      when :up
+        rotate
+      when :down
+        @currentY += 1 if valid
+      when :escape
+        exit 0
+      end
+    end
   end
 
   class Controller
     def update(model)
-      if Input.keys(:keyboard).include?(:right)
-        model.move_right
+      [:right, :left, :up, :down, :escape].each do |op|
+        if Input.keys(:keyboard).include?(op)
+          model.send("key_press", op)
+        end
       end
-
-      if Input.keys(:keyboard).include?(:left)
-        model.move_left
-      end
-
-      if Input.keys(:keyboard).include?(:up)
-        model.rotate
-      end
-
-      exit 0 if Input.keys(:keyboard).include?(:escape)
     end
   end
 end
@@ -164,9 +163,11 @@ end
 model = Tetris::Model.new
 view  = Tetris::View.new(model)
 controller = Tetris::Controller.new
+counter = 0
 
-StarRuby::Game.run(*Tetris::View.size, :fps => 5) do |game|
+StarRuby::Game.run(*Tetris::View.size) do |game|
+  counter += 1
   view.render(game.screen)
-  controller.update(model)
-  model.tick
+  controller.update(model) if counter % 3 == 0
+  model.tick               if counter % 5 == 0
 end
